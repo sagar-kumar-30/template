@@ -8,10 +8,12 @@ interface Field {
 interface TabProps {
   data: Field
   value: string
+  error?: string | null
   handleFieldChange: (name: string, value: string) => void
+  onBlur?: (name: string) => void
 }
 
-const Tab = ({ data, value, handleFieldChange }: TabProps) => {
+const Tab = ({ data, value, error, handleFieldChange, onBlur }: TabProps) => {
   const { name, label, type, required } = data
   return (
     <div className="form-field">
@@ -25,8 +27,10 @@ const Tab = ({ data, value, handleFieldChange }: TabProps) => {
         value={value}
         placeholder={label}
         onChange={(e) => handleFieldChange(name, e.target.value)}
-        className="field-input"
+        onBlur={() => onBlur?.(name)}
+        className={`field-input${error ? ' field-input--error' : ''}`}
       />
+      {error && <span className="field-error">{error}</span>}
     </div>
   )
 }

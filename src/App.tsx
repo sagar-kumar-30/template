@@ -2,6 +2,7 @@ import { useState } from 'react'
 import './App.css'
 import StepIndicator from './Components/StepIndicator'
 import Tab from './Components/Tab'
+import { validate } from './validation'
 
 interface Field {
   name: string
@@ -54,21 +55,46 @@ function App() {
   const [formData, setFormData] = useState(initialData)
   const [activeStep, setActiveStep] = useState(0)
   const [submitted, setSubmitted] = useState(false)
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
 
   const handleFieldChange = (fieldName: string, value: string) =>
     setFormData(prev => ({ ...prev, [fieldName]: value }))
 
-  const isStepValid = () =>
-    steps[activeStep].fields.every(f => !f.required || formData[f.name].trim())
+  const handleBlur = (fieldName: string) =>
+    setTouched(prev => ({ ...prev, [fieldName]: true }))
 
-  const handleNext = () => setActiveStep(p => p + 1)
-  const handlePrev = () => setActiveStep(p => p - 1)
-  const handleSubmit = () => {
-    console.log('Submitted:', formData)
-    setSubmitted(true)
+  const getError = (fieldName: string): string | null =>
+    touched[fieldName] ? validate(fieldName, formData[fieldName]) : null
+
+  const isStepValid = () =>
+    steps[activeStep].fields.every(f => validate(f.name, formData[f.name]) === null)
+
+  const touchCurrentStep = () => {
+    const patch = steps[activeStep].fields.reduce<Record<string, boolean>>(
+      (acc, f) => ({ ...acc, [f.name]: true }),
+      {}
+    )
+    setTouched(prev => ({ ...prev, ...patch }))
   }
+
+  const handleNext = () => {
+    touchCurrentStep()
+    if (isStepValid()) setActiveStep(p => p + 1)
+  }
+
+  const handlePrev = () => setActiveStep(p => p - 1)
+
+  const handleSubmit = () => {
+    touchCurrentStep()
+    if (isStepValid()) {
+      console.log('Submitted:', formData)
+      setSubmitted(true)
+    }
+  }
+
   const handleReset = () => {
     setFormData(initialData)
+    setTouched({})
     setActiveStep(0)
     setSubmitted(false)
   }
@@ -118,7 +144,9 @@ function App() {
                   key={field.name}
                   data={field}
                   value={formData[field.name]}
+                  error={getError(field.name)}
                   handleFieldChange={handleFieldChange}
+                  onBlur={handleBlur}
                 />
               ))}
             </div>
@@ -133,9 +161,7 @@ function App() {
           {isLastStep ? (
             <button className="btn btn-primary" onClick={handleSubmit}>Submit →</button>
           ) : (
-            <button className="btn btn-primary" disabled={!isStepValid()} onClick={handleNext}>
-              Next →
-            </button>
+            <button className="btn btn-primary" onClick={handleNext}>Next →</button>
           )}
         </div>
       </div>
