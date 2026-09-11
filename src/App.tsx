@@ -2,6 +2,7 @@ import { useState } from 'react'
 import './App.css'
 import StepIndicator from './Components/StepIndicator'
 import Tab from './Components/Tab'
+import Modal from './Components/Modal'
 import { validate } from './validation'
 
 interface Field {
@@ -51,11 +52,21 @@ const initialData: Record<string, string> = {
   street: "", city: "", state: "", zip: "",
 }
 
+// Simulates an API call — resolves ~60% of the time
+const fakeSubmitApi = (data: Record<string, string>): Promise<void> =>
+  new Promise((resolve, reject) =>
+    setTimeout(() => {
+      console.log('Submitting:', data)
+      Math.random() > 0.4 ? resolve() : reject(new Error('Server error'))
+    }, 1400)
+  )
+
 function App() {
   const [formData, setFormData] = useState(initialData)
   const [activeStep, setActiveStep] = useState(0)
-  const [submitted, setSubmitted] = useState(false)
   const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const [submitting, setSubmitting] = useState(false)
+  const [modal, setModal] = useState<'success' | 'error' | null>(null)
 
   const handleFieldChange = (fieldName: string, value: string) =>
     setFormData(prev => ({ ...prev, [fieldName]: value }))
@@ -84,11 +95,17 @@ function App() {
 
   const handlePrev = () => setActiveStep(p => p - 1)
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     touchCurrentStep()
-    if (isStepValid()) {
-      console.log('Submitted:', formData)
-      setSubmitted(true)
+    if (!isStepValid()) return
+    setSubmitting(true)
+    try {
+      await fakeSubmitApi(formData)
+      setModal('success')
+    } catch {
+      setModal('error')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -96,20 +113,7 @@ function App() {
     setFormData(initialData)
     setTouched({})
     setActiveStep(0)
-    setSubmitted(false)
-  }
-
-  if (submitted) {
-    return (
-      <div className="form-wrapper">
-        <div className="success-card">
-          <div className="success-icon">✓</div>
-          <h2>Submitted Successfully!</h2>
-          <p>Thank you, <strong>{formData.name}</strong>. We have received your information.</p>
-          <button className="btn btn-primary" onClick={handleReset}>Start Over</button>
-        </div>
-      </div>
-    )
+    setModal(null)
   }
 
   const isLastStep = activeStep === steps.length - 1
@@ -155,16 +159,29 @@ function App() {
 
         <div className="form-footer">
           {activeStep > 0 && (
-            <button className="btn btn-secondary" onClick={handlePrev}>← Previous</button>
+            <button className="btn btn-secondary" onClick={handlePrev} disabled={submitting}>
+              ← Previous
+            </button>
           )}
           <div style={{ flex: 1 }} />
           {isLastStep ? (
-            <button className="btn btn-primary" onClick={handleSubmit}>Submit →</button>
+            <button className="btn btn-primary" onClick={handleSubmit} disabled={submitting}>
+              {submitting ? <><span className="spinner" /> Submitting…</> : 'Submit →'}
+            </button>
           ) : (
             <button className="btn btn-primary" onClick={handleNext}>Next →</button>
           )}
         </div>
       </div>
+
+      {modal && (
+        <Modal
+          type={modal}
+          name={formData.name}
+          onClose={() => setModal(null)}
+          onReset={handleReset}
+        />
+      )}
     </div>
   )
 }
