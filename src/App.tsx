@@ -1,121 +1,145 @@
 import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
 import './App.css'
+import StepIndicator from './Components/StepIndicator'
+import Tab from './Components/Tab'
+
+interface Field {
+  name: string
+  label: string
+  type: string
+  required: boolean
+}
+
+interface Step {
+  title: string
+  fields: Field[]
+}
+
+const steps: Step[] = [
+  {
+    title: "Personal Info",
+    fields: [
+      { name: "name", label: "Full Name", type: "text", required: true },
+      { name: "email", label: "Email Address", type: "email", required: true },
+    ],
+  },
+  {
+    title: "Contact",
+    fields: [
+      { name: "mobileNo", label: "Mobile Number", type: "tel", required: true },
+      { name: "dob", label: "Date of Birth", type: "date", required: true },
+    ],
+  },
+  {
+    title: "Address",
+    fields: [
+      { name: "street", label: "Street Address", type: "text", required: true },
+      { name: "city", label: "City", type: "text", required: true },
+      { name: "state", label: "State / Province", type: "text", required: true },
+      { name: "zip", label: "ZIP / Postal Code", type: "text", required: true },
+    ],
+  },
+  {
+    title: "Review",
+    fields: [],
+  },
+]
+
+const initialData: Record<string, string> = {
+  name: "", email: "", mobileNo: "", dob: "",
+  street: "", city: "", state: "", zip: "",
+}
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [formData, setFormData] = useState(initialData)
+  const [activeStep, setActiveStep] = useState(0)
+  const [submitted, setSubmitted] = useState(false)
+
+  const handleFieldChange = (fieldName: string, value: string) =>
+    setFormData(prev => ({ ...prev, [fieldName]: value }))
+
+  const isStepValid = () =>
+    steps[activeStep].fields.every(f => !f.required || formData[f.name].trim())
+
+  const handleNext = () => setActiveStep(p => p + 1)
+  const handlePrev = () => setActiveStep(p => p - 1)
+  const handleSubmit = () => {
+    console.log('Submitted:', formData)
+    setSubmitted(true)
+  }
+  const handleReset = () => {
+    setFormData(initialData)
+    setActiveStep(0)
+    setSubmitted(false)
+  }
+
+  if (submitted) {
+    return (
+      <div className="form-wrapper">
+        <div className="success-card">
+          <div className="success-icon">✓</div>
+          <h2>Submitted Successfully!</h2>
+          <p>Thank you, <strong>{formData.name}</strong>. We have received your information.</p>
+          <button className="btn btn-primary" onClick={handleReset}>Start Over</button>
+        </div>
+      </div>
+    )
+  }
+
+  const isLastStep = activeStep === steps.length - 1
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="form-wrapper">
+      <div className="form-card">
+        <h1 className="form-title">Registration Form</h1>
 
-      <div className="ticks"></div>
+        <StepIndicator steps={steps} activeStep={activeStep} />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+        <div className="form-body">
+          {isLastStep ? (
+            <div className="review-section">
+              <h3>Review Your Information</h3>
+              {steps.slice(0, -1).map(step => (
+                <div key={step.title} className="review-group">
+                  <h4>{step.title}</h4>
+                  {step.fields.map(field => (
+                    <div key={field.name} className="review-row">
+                      <span className="review-label">{field.label}</span>
+                      <span className="review-value">{formData[field.name] || '—'}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="fields-grid">
+              {steps[activeStep].fields.map(field => (
+                <Tab
+                  key={field.name}
+                  data={field}
+                  value={formData[field.name]}
+                  handleFieldChange={handleFieldChange}
+                />
+              ))}
+            </div>
+          )}
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+        <div className="form-footer">
+          {activeStep > 0 && (
+            <button className="btn btn-secondary" onClick={handlePrev}>← Previous</button>
+          )}
+          <div style={{ flex: 1 }} />
+          {isLastStep ? (
+            <button className="btn btn-primary" onClick={handleSubmit}>Submit →</button>
+          ) : (
+            <button className="btn btn-primary" disabled={!isStepValid()} onClick={handleNext}>
+              Next →
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
 
